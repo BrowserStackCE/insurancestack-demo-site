@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { QuoteForm } from "@/components/quote-calculator/quote-form";
+import { hexclaveServerApp } from "@/stack/server";
 
 export const metadata: Metadata = {
   title: "Quote Calculator — Insurance Stack",
@@ -9,7 +10,8 @@ export const metadata: Metadata = {
     "Get an instant personalized insurance quote for auto, home, life, and business coverage. Bundle policies and save up to 15%.",
 };
 
-export default function QuoteCalculatorPage() {
+export default async function QuoteCalculatorPage() {
+  await hexclaveServerApp.getUser({or:'redirect'})
   return (
     <>
       <SiteHeader />

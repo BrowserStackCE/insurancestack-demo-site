@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createQuoteCheckout } from "@/app/actions/quote-checkout";
 import {
   calculateQuote,
   defaultFormData,
@@ -151,7 +153,19 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-function QuoteSummary({ result, data }: { result: QuoteResult; data: QuoteFormData }) {
+function QuoteSummary({
+  result,
+  data,
+  onCheckout,
+  checkoutLoading,
+  checkoutError,
+}: {
+  result: QuoteResult;
+  data: QuoteFormData;
+  onCheckout: () => void;
+  checkoutLoading: boolean;
+  checkoutError: string | null;
+}) {
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white">
@@ -251,13 +265,21 @@ function QuoteSummary({ result, data }: { result: QuoteResult; data: QuoteFormDa
         application and receive policy documents.
       </p>
 
+      {checkoutError && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {checkoutError}
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-3">
-        <a
-          href="/auth/sign-up"
-          className="inline-flex items-center rounded-lg bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300"
+        <button
+          type="button"
+          onClick={onCheckout}
+          disabled={checkoutLoading}
+          className="inline-flex items-center rounded-lg bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Continue to apply
-        </a>
+          {checkoutLoading ? "Preparing checkout…" : "Continue to checkout"}
+        </button>
         <button
           type="button"
           onClick={() => window.print()}
@@ -271,10 +293,13 @@ function QuoteSummary({ result, data }: { result: QuoteResult; data: QuoteFormDa
 }
 
 export function QuoteForm() {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<QuoteFormData>(defaultFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [quote, setQuote] = useState<QuoteResult | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   function update<K extends keyof QuoteFormData>(key: K, value: QuoteFormData[K]) {
     setData((prev) => ({ ...prev, [key]: value }));
@@ -314,6 +339,23 @@ export function QuoteForm() {
 
   function handleRecalculate() {
     setQuote(calculateQuote(data));
+  }
+
+  async function handleCheckout() {
+    if (!quote) return;
+
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+
+    const result = await createQuoteCheckout(data, quote);
+
+    if (result.success) {
+      router.push(`/checkout/${result.quoteId}`);
+      return;
+    }
+
+    setCheckoutError(result.error);
+    setCheckoutLoading(false);
   }
 
   return (
@@ -910,7 +952,13 @@ export function QuoteForm() {
                 information you provided.
               </p>
             </div>
-            <QuoteSummary result={quote} data={data} />
+            <QuoteSummary
+              result={quote}
+              data={data}
+              onCheckout={handleCheckout}
+              checkoutLoading={checkoutLoading}
+              checkoutError={checkoutError}
+            />
           </div>
         )}
 

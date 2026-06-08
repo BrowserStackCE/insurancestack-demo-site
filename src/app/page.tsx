@@ -205,7 +205,7 @@ export default function Home() {
                     {product.description}
                   </p>
                   <a
-                    href="/auth"
+                    href="/quote-calculator"
                     className="mt-4 inline-flex items-center text-sm font-medium text-slate-900 transition-colors group-hover:text-amber-600"
                   >
                     Get a quote
